@@ -1,0 +1,116 @@
+---
+title: "X Data Preprocessing"
+date: "2022-12-22"
+geometry: margin=1.5cm
+output:
+  word_document: default
+  html_document: default
+---
+**Description:** This script is used to pre-process the X data (input variables) for all the tracts of New York and Los Angeles MSAs
+
+<br>
+
+**The datasets used in this script are the following:**
+
+* Los_Angeles_X.csv - This file contains the variables mentioned in Table 3, for the year 2000 and the Los Angeles MSA
+* New_York_X.csv - This file contains the variables mentioned in Table 3, for the year 2000 and the New York MSA
+
+<br>
+
+**Using this script, the following datasets are created:**
+
+* la_x.csv - This file contains the X data processed for all the tracts of Los Angeles MSA
+* ny_x.csv - This file contains the X data processed for all the tracts of New York MSA
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+```{r}
+# clearing the workspace
+rm(list=ls(all=TRUE))
+
+# loading all the required libraries
+library(readr, quietly = T)
+library(data.table, quietly = T)
+library(ggplot2, quietly = T)
+library(vtable, quietly = T)
+```
+
+```{r}
+# reading the datasets
+ny_df = read.csv("New_York_X.csv")
+la_df = read.csv("Los_Angeles_X.csv")
+```
+
+```{r}
+# changing the 'AREAKEY' (tract identifier variable) to factor from int data type
+ny_df$AREAKEY <- as.factor(ny_df$AREAKEY)
+la_df$AREAKEY <- as.factor(la_df$AREAKEY)
+
+# removing rows which have zeros in all the columns
+ny_df <- ny_df[rowSums(ny_df[,-1]) > 0,]
+la_df <- la_df[rowSums(la_df[,-1]) > 0,]
+```
+
+```{r}
+# calculating ratios for the required columns
+ny_df['SHRAMI0'] = ny_df['SHRAMI0N']/ny_df['SHR0D']
+la_df['SHRAMI0'] = la_df['SHRAMI0N']/la_df['SHR0D']
+
+ny_df['SHRASN0'] = ny_df['SHRASN0N']/ny_df['SHR0D']
+la_df['SHRASN0'] = la_df['SHRASN0N']/la_df['SHR0D']
+
+ny_df['SHRHIP0'] = ny_df['SHRHIP0N']/ny_df['SHR0D']
+la_df['SHRHIP0'] = la_df['SHRHIP0N']/la_df['SHR0D']
+
+ny_df['NONFAM0P'] = ny_df['NONFAM0']/ny_df['NUMHHS0']
+la_df['NONFAM0P'] = la_df['NONFAM0']/la_df['NUMHHS0']
+
+ny_df['WNONFAM0P'] = ny_df['WNONFAM0']/ny_df['NUMHHS0']
+la_df['WNONFAM0P'] = la_df['WNONFAM0']/la_df['NUMHHS0']
+
+ny_df['COMMUT20NWKH'] = (ny_df['COMMUT20'] - ny_df['WKHOME0'])/ny_df['WRCNTY0D']
+la_df['COMMUT20NWKH'] = (la_df['COMMUT20'] - la_df['WKHOME0'])/la_df['WRCNTY0D']
+
+ny_df['WMEMP0P'] = ny_df['WMEMP0']/ny_df['WM16P0']
+la_df['WMEMP0P'] = la_df['WMEMP0']/la_df['WM16P0']
+
+ny_df['WFEMP0P'] = ny_df['WFEMP0']/ny_df['WF16P0']
+la_df['WFEMP0P'] = la_df['WFEMP0']/la_df['WF16P0']
+
+ny_df['VACHU0P'] = ny_df['VACHU0']/ny_df['TOTHSUN0']
+la_df['VACHU0P'] = la_df['VACHU0']/la_df['TOTHSUN0']
+
+ny_df['RNTOCC0P'] = ny_df['RNTOCC0']/ny_df['TOTHSUN0']
+la_df['RNTOCC0P'] = la_df['RNTOCC0']/la_df['TOTHSUN0']
+```
+
+```{r}
+# removing the columns not required (since these columns were converted to ratios and new columns were created)
+ny_df <- subset(ny_df, select = -c(SHR0D, SHRAMI0N, SHRASN0N, SHRHIP0N, NONFAM0, WNONFAM0, NUMHHS0, COMMUT20, WKHOME0, WRCNTY0D, WMEMP0, WM16P0, WFEMP0, WF16P0, VACHU0, TOTHSUN0, RNTOCC0))
+
+la_df <- subset(la_df, select = -c(SHR0D, SHRAMI0N, SHRASN0N, SHRHIP0N, NONFAM0, WNONFAM0, NUMHHS0, COMMUT20, WKHOME0, WRCNTY0D, WMEMP0, WM16P0, WFEMP0, WF16P0, VACHU0, TOTHSUN0, RNTOCC0))
+```
+
+```{r}
+# replacing NANs introduced by the calculation of ratios in the above step with zeros
+ny_df[is.na(ny_df)] <- 0
+la_df[is.na(la_df)] <- 0
+```
+
+```{r}
+# summary statistics for New York MSA variables in the year 2000
+write.csv(summary(ny_df[, -which(names(ny_df) == 'AREAKEY')], digits = 2),"summary5.csv")
+```
+
+```{r}
+# summary statistics for Los Angeles MSA variables in the year 2000
+write.csv(summary(ny_df[, -which(names(ny_df) == 'AREAKEY')], digits = 2),"summary6.csv")
+```
+
+```{r}
+# creating csv files 
+write_csv(ny_df, "ny_x.csv")
+write_csv(la_df, "la_x.csv")
+```
